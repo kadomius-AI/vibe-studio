@@ -33,7 +33,11 @@ class MaskSmoother:
         self.prev, self.alpha = None, alpha
 
     def __call__(self, m):
-        self.prev = m if self.prev is None else self.alpha * m + (1 - self.alpha) * self.prev
+        # reset on camera cuts (mask changes a lot) so no "ghost" of the previous shot lingers
+        if self.prev is None or self.prev.shape != m.shape or float(np.abs(m - self.prev).mean()) > 0.08:
+            self.prev = m
+        else:
+            self.prev = self.alpha * m + (1 - self.alpha) * self.prev
         return self.prev
 
 
