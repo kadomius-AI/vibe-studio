@@ -76,6 +76,27 @@ def _image_frames(img, W, H, n, motion):
         yield cv2.warpAffine(bgr, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
 
+def _contain_frames(img, W, H, n, motion):
+    """Whole photo visible (scaled to width) with a slow move, over a dark blurred copy of itself."""
+    bgr = img[..., :3]
+    back = cv2.GaussianBlur(next(_image_frames(img, W, H, 1, "none")), (0, 0), 35)
+    back = (back * 0.45).astype(np.uint8)
+    ih, iw = bgr.shape[:2]
+    for k in range(n):
+        p = k / max(1, n - 1)
+        e = p * p * (3 - 2 * p)
+        z = 1.0 + (0.06 * e if motion != "zoom_out" else 0.06 * (1 - e))
+        punch = 1 + 0.04 * max(0.0, 1 - k / 6)
+        s = W / iw * 1.04 * z * punch
+        ox = (W - iw * s) / 2 + (({"pan_left": 0.5 - e, "pan_right": e - 0.5}.get(motion, 0)) * iw * s * 0.08)
+        oy = (H - ih * s) / 2
+        M = np.float32([[s, 0, ox], [0, s, oy]])
+        f = back.copy()
+        fg = cv2.warpAffine(bgr, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        m = cv2.warpAffine(np.ones((ih, iw), np.float32), M, (W, H), flags=cv2.INTER_LINEAR, borderValue=0)[..., None]
+        yield (fg * m + f * (1 - m)).astype(np.uint8)
+
+
 def _bg_canvas(W, H, bg, img=None):
     if bg == "blur" and img is not None:
         f = next(_image_frames(img, W, H, 1, "none"))
@@ -178,6 +199,8 @@ def render_spec(spec, out):
         elif typ == "product":
             frames = _product_frames(_load(base / sc["src"]), W, H, n, sc.get("bg", brand.get("bg", "#111111")),
                                      sc.get("cutout", True))
+        elif sc.get("fit") == "contain":
+            frames = _contain_frames(_load(base / sc["src"]), W, H, n, sc.get("motion", "zoom_in"))
         else:
             frames = _image_frames(_load(base / sc["src"]), W, H, n, sc.get("motion", "zoom_in"))
         texts = [(t, _text_img(t, brand, W)) for t in sc.get("texts", [])]
