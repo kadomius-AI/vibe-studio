@@ -106,16 +106,17 @@ def cut(video, segments, out, words=None):
         parts.append(f"[0:v]trim=start={s:.3f}:end={e:.3f},setpts=PTS-STARTPTS[v{i}]")
         if has_audio:
             parts.append(f"[0:a]atrim=start={s:.3f}:end={e:.3f},asetpts=PTS-STARTPTS,"
-                         f"afade=t=in:st=0:d=0.012,afade=t=out:st={max(0, d - 0.012):.3f}:d=0.012[a{i}]")
+                         f"afade=t=in:st=0:d=0.03,afade=t=out:st={max(0, d - 0.03):.3f}:d=0.03[a{i}]")
             labels += f"[v{i}][a{i}]"
         else:
             labels += f"[v{i}]"
     n = len(snapped)
     fc = ";".join(parts) + (f";{labels}concat=n={n}:v=1:a=1[v][a]" if has_audio else f";{labels}concat=n={n}:v=1:a=0[v]")
     maps = ["-map", "[v]"] + (["-map", "[a]"] if has_audio else [])
-    run([FFMPEG, "-v", "error", "-y", "-i", str(video), "-filter_complex", fc, *maps,
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "14", "-pix_fmt", "yuv420p",
-         *(["-c:a", "pcm_s16le"] if has_audio else []), str(out)])
+    # lossless intermediate (qp 0): the only lossy encode happens once, in the final render
+    from .log import ffmpeg as _ff
+    _ff(["-y", "-i", str(video), "-filter_complex", fc, *maps, "-c:v", "libx264", "-preset", "ultrafast", "-qp", "0",
+         "-pix_fmt", "yuv420p", *(["-c:a", "pcm_s16le"] if has_audio else []), str(out)], what="cut segments")
     rel, off = [], 0.0
     for s, e in snapped:
         for w in words or []:

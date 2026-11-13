@@ -131,6 +131,19 @@ def make(frame, text, style, out, frame2=None, labels=None, bg="blur", accent="#
                               np.ones((25, 25), np.uint8))
             clean = cv2.inpaint(sm, hole, 12, cv2.INPAINT_TELEA)
             canvas = _background(Image.fromarray(cv2.cvtColor(clean, cv2.COLOR_BGR2RGB)), bg).convert("RGBA")
+        # frame head-and-shoulders around the main face, so the face is big and desks/props are left out
+        fb = FaceFinder().find(bgr)
+        if fb:
+            fx, fy, fw, fh = fb[0][:4]
+            h0, w0 = bgr.shape[:2]
+            x0, x1 = int(max(0, fx + fw / 2 - fw * 2.1)), int(min(w0, fx + fw / 2 + fw * 2.1))
+            y0, y1 = int(max(0, fy - fh * 0.75)), int(min(h0, fy + fh * 3.2))
+            pm = pm.copy()
+            keep = np.zeros_like(pm)
+            keep[y0:y1, x0:x1] = 1
+            # fade the bottom edge so the cut-out ends softly at the chest
+            ramp = np.clip((y1 - np.arange(h0)) / max(1, fh * 0.6), 0, 1)[:, None]
+            pm = pm * keep * ramp
         person = _outline(to_rgba(bgr, pm))
         s = TH * 1.02 / person.height
         person = person.resize((int(person.width * s), int(person.height * s)), Image.LANCZOS)

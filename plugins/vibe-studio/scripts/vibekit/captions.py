@@ -41,7 +41,7 @@ class CaptionTrack:
     """Pre-renders caption images and returns the right one for any time t."""
 
     def __init__(self, words, frame_w, frame_h, style="bold", y=None, highlight=None):
-        st = dict(STYLES.get(style, STYLES["bold"]))
+        st = dict(style) if isinstance(style, dict) else dict(STYLES.get(style, STYLES["bold"]))   # brand dict or name
         if highlight:
             st["highlight"] = highlight
         self.st = st
@@ -74,6 +74,10 @@ class CaptionTrack:
                     text = " ".join(w["word"].replace("*", "") for w in c)
                     self.cache[key] = render_text(text, highlight_index=active, **self.kw)
                 img = self.cache[key]
+                age = t - a
+                if age < 0.12:                      # pop in: 88% -> 100% over 120 ms
+                    s = 0.88 + 0.12 * (age / 0.12)
+                    img = img.resize((max(1, int(img.width * s)), max(1, int(img.height * s))))
                 x = (self.W - img.width) / 2
                 y = self.y * self.H - img.height / 2
                 return img, x, y
