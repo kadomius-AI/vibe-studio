@@ -1,7 +1,7 @@
 {
   "name": "vibe-studio",
   "displayName": "Vibe Studio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Clips, thumbnails and ads from your content. /clips turns a long video (file or link) into captioned, face-tracked vertical clips. /thumbnail turns a video into 3 ready-to-upload YouTube thumbnails. /ad turns a product photo into 5 short vertical video ads plus ad copy. Free voiceovers, original music, 3D motion and sound design, all local; no API keys, no payments.",
   "author": {
     "name": "kadomius-AI"

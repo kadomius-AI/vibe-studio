@@ -12,3 +12,4 @@ kokoro>=0.9
 demucs
 diffusers
 accelerate
+spandrel

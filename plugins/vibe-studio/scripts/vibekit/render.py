@@ -13,7 +13,7 @@ SIZES = {"vertical": (1080, 1920), "square": (1080, 1080), "horizontal": (1920, 
 
 def render(src, out, *, fmt="vertical", words=None, caption_style="bold", caption_y=None,
            headline=None, headline_secs=3.0, zoom=1.0, eye_y=0.38, prefer_x=None, follow_face=True,
-           filters=(), music=None, music_db=-22, loudnorm=True, crf=18, punch=True, sfx=True, pre_filters=()):
+           filters=(), music=None, music_db=-22, loudnorm=True, crf=18, punch=True, sfx=True, pre_filters=(), upscale=False):
     info = probe(src)
     W, H = SIZES[fmt]
     aspect = W / H
@@ -63,10 +63,19 @@ def render(src, out, *, fmt="vertical", words=None, caption_style="bold", captio
             x = min(max(cx - cw2 / 2, 0), info["width"] - cw2)
             y = min(max(cy - ch2 * eye_y, 0), info["height"] - ch2)
             cw, ch = cw2, ch2
-        M = cv2.getAffineTransform(
-            np.float32([[x, y], [x + cw, y], [x, y + ch]]),
-            np.float32([[0, 0], [W, 0], [0, H]]))
-        out_f = cv2.warpAffine(frame, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+        if upscale and cw < W * 0.75:
+            # low-res source: cut the crop at native size, AI-upscale 4x, then fit to the output size
+            from .upscale import upscale as sr
+            nw, nh = max(8, int(round(cw))), max(8, int(round(ch)))
+            Mn = cv2.getAffineTransform(np.float32([[x, y], [x + cw, y], [x, y + ch]]),
+                                        np.float32([[0, 0], [nw, 0], [0, nh]]))
+            native = cv2.warpAffine(frame, Mn, (nw, nh), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_REPLICATE)
+            out_f = cv2.resize(sr(native), (W, H), interpolation=cv2.INTER_LANCZOS4)
+        else:
+            M = cv2.getAffineTransform(
+                np.float32([[x, y], [x + cw, y], [x, y + ch]]),
+                np.float32([[0, 0], [W, 0], [0, H]]))
+            out_f = cv2.warpAffine(frame, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
         t = i / fps
         for flt in filters:
             out_f = flt(out_f, t)
