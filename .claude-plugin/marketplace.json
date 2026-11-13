@@ -1,0 +1,9 @@
+{
+  "name": "vibe-studio",
+  "owner": { "name": "kadomius-AI" },
+  "metadata": { "description": "Vibe Studio — clips, thumbnails and ads from your content, by talking to Claude." },
+  "plugins": [
+    { "name": "vibe-studio", "source": "./plugins/vibe-studio",
+      "description": "/clips: long video → captioned vertical clips. /thumbnail: video → 3 YouTube thumbnails. /ad: product photo → 5 vertical video ads + ad copy." }
+  ]
+}

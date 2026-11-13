@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+*.mp4
+*.mov
+# projects and outputs never go to git
+Vibe Projects/
