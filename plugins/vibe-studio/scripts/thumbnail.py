@@ -11,6 +11,7 @@
       face   : subject cut out large on one side, 2-4 huge words on the other (classic emotion thumbnail)
       split  : two frames side by side with an arrow (before/after, then/now, contrast)
       result : full-bleed frame zoomed on the subject + bold text banner (object/result focus)
+      --face-edit beard|stubble|shave|custom [--face-prompt "..."]: generative face edit (own face / consent only)
 
   thumbnail.py compare A.png B.png C.png --out compare.png
       Side-by-side at full size and at real phone size (~246px wide) to check readability.
@@ -112,8 +113,12 @@ def _outline(rgba, px=10, color=(255, 255, 255)):
     return Image.alpha_composite(out, rgba)
 
 
-def make(frame, text, style, out, frame2=None, labels=None, bg="blur", accent="#FFD400", side="right"):
+def make(frame, text, style, out, frame2=None, labels=None, bg="blur", accent="#FFD400", side="right",
+         face_edit=None, face_prompt=None):
     bgr = cv2.imread(str(frame))
+    if face_edit:   # generative face edit (own face / with consent only)
+        from vibekit.faceedit import edit_image
+        bgr, _, _ = edit_image(bgr, face_edit, face_prompt)
     pil = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
     canvas = _background(pil, bg).convert("RGBA")
     big = dict(font="Anton.ttf", color="#FFFFFF", accent=accent, stroke=10, upper=True, shadow=True)
@@ -198,12 +203,15 @@ def main():
         m.add_argument(k, required=k != "--text", default="" if k == "--text" else None)
     m.add_argument("--frame2"); m.add_argument("--labels"); m.add_argument("--bg", default="blur")
     m.add_argument("--accent", default="#FFD400"); m.add_argument("--side", default="right")
+    m.add_argument("--face-edit", choices=["beard", "stubble", "shave", "custom"],
+                   help="generative face edit on the person (own face or with consent only)")
+    m.add_argument("--face-prompt", help="custom description for --face-edit custom")
     k = sub.add_parser("compare"); k.add_argument("files", nargs="+"); k.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.cmd == "candidates":
         print(json.dumps(candidates(a.video, a.out, a.n), indent=1))
     elif a.cmd == "make":
-        print(make(a.frame, a.text, a.style, a.out, a.frame2, a.labels, a.bg, a.accent, a.side))
+        print(make(a.frame, a.text, a.style, a.out, a.frame2, a.labels, a.bg, a.accent, a.side, a.face_edit, a.face_prompt))
     else:
         print(compare(a.files, a.out))
 

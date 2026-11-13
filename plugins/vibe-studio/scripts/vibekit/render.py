@@ -13,7 +13,7 @@ SIZES = {"vertical": (1080, 1920), "square": (1080, 1080), "horizontal": (1920, 
 
 def render(src, out, *, fmt="vertical", words=None, caption_style="bold", caption_y=None,
            headline=None, headline_secs=3.0, zoom=1.0, eye_y=0.38, prefer_x=None, follow_face=True,
-           filters=(), music=None, music_db=-22, loudnorm=True, crf=18, punch=True, sfx=True):
+           filters=(), music=None, music_db=-22, loudnorm=True, crf=18, punch=True, sfx=True, pre_filters=()):
     info = probe(src)
     W, H = SIZES[fmt]
     aspect = W / H
@@ -53,6 +53,8 @@ def render(src, out, *, fmt="vertical", words=None, caption_style="bold", captio
         ok, frame = cap.read()
         if not ok:
             break
+        for pf in pre_filters:          # full-frame edits (e.g. face edits) before reframing
+            frame = pf(frame, i / fps)
         x, y, cw, ch = boxes[min(i, len(boxes) - 1)]
         z = zoom_mul[min(i, n_frames - 1)]
         if z != 1.0:  # tighten around the face line, stay inside the frame

@@ -13,6 +13,9 @@ MODEL_URLS = {
     # OpenCV Zoo YuNet face detector (MIT)
     "yunet": ("face_detection_yunet_2023mar.onnx",
               "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"),
+    # Google MediaPipe face landmarker, 478 points (Apache-2.0)
+    "facemesh": ("face_landmarker.task",
+                 "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"),
     # Google MediaPipe selfie segmenter (Apache-2.0)
     "selfie": ("selfie_segmenter.tflite",
                "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite"),

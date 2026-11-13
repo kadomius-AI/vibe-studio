@@ -36,6 +36,7 @@ Needs: macOS or Linux, Homebrew (`ffmpeg` is installed automatically), Python 3.
 | 3D parallax on photos | Depth Anything V2 Small (PyTorch + transformers) | Apache-2.0 |
 | Product cut-outs | Segment Anything (SAM ViT-B) | Apache-2.0 |
 | Person cut-outs / backgrounds | MediaPipe selfie segmenter | Apache-2.0 |
+| Face edits (beard / stubble / shave, consent only) | SDXL Inpainting via diffusers + MediaPipe Face Landmarker | CreativeML Open RAIL++-M / Apache-2.0 |
 | Graphics and text | Pillow + NumPy | MIT-CMU / BSD |
 | AI runtime | PyTorch (Apple GPU), MLX | BSD / MIT |
 No API keys, no accounts, no payments. First use downloads about 10–15 GB of models once.

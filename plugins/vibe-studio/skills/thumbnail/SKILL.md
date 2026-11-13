@@ -34,3 +34,11 @@ Run scripts through `../../scripts/run.sh` (auto-setup on first run). The user i
 - **Readable at phone size** (about 246 px wide) is the real test.
 - **Always make variants and test**; patterns are starting points, the channel's own data decides.
 - Never use misleading claims or someone else's likeness without rights.
+
+## Face edits (generative, consent only)
+`--face-edit beard|stubble|shave|custom` (+ `--face-prompt "…"` for custom) edits the person with SDXL Inpainting
+guided by 478 face landmarks: only the beard/jaw area changes, the eyes, nose and mouth stay real.
+- **Only** on the user's own face or someone who has clearly agreed. Never to impersonate, deceive, or make someone
+  appear to be someone else. Do not use on public figures or other creators' footage.
+- Quality: adding a beard/stubble is the most reliable; clean-shave is good but check skin texture. ~1 min per photo.
+- LOOK at the result; if the edge looks painted or the skin waxy, try another `--seed`-like retry or a lighter edit (stubble).
