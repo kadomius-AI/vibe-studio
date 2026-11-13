@@ -169,11 +169,20 @@ def main():
         t = Path(a.target)
         specs = sorted(t.glob("ad_*.json")) if t.is_dir() else [t]
         res = []
+        from vibekit import checks
+        failed = False
         for sp in specs:
             out = sp.with_suffix(".mp4")
             render_spec(sp, out)
-            res.append(qa.report(out))
+            rep = checks.run(out, fmt="vertical")
+            checks.save(rep, str(out) + ".qa.json")
+            r = qa.report(out)
+            r["qa"] = checks.summary(rep)
+            failed |= not rep["passed"]
+            res.append(r)
         print(json.dumps(res, indent=1))
+        if failed:
+            sys.exit(2)
 
 
 if __name__ == "__main__":

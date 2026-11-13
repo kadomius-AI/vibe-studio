@@ -103,7 +103,8 @@ def _bg_canvas(W, H, bg, img=None):
         f = cv2.GaussianBlur(f, (0, 0), 30)
         return (f * 0.55).astype(np.uint8)
     c = np.array(hex_rgb(bg or "#111111")[:3][::-1], np.float32)
-    grad = np.linspace(1.15, 0.55, H, dtype=np.float32)[:, None, None]
+    c = np.maximum(c, 30)                         # very dark brand colours still read as colour, never "black screen"
+    grad = np.linspace(1.25, 0.8, H, dtype=np.float32)[:, None, None]
     return np.clip(np.ones((H, W, 3), np.float32) * c * grad, 0, 255).astype(np.uint8)
 
 
@@ -374,7 +375,9 @@ def render_spec(spec, out):
         if vo_caps:
             c = vo_caps.at(t)
             if c:
-                paste(f, *c)
+                from . import layout as LY
+                img, cx, _ = c
+                paste(f, img, cx, LY.caption_y(img.height, W, H, None, preferred=spec.get("caption_y", 0.70)))
         vid.stdin.write(np.ascontiguousarray(f).tobytes())
         state["i"] += 1
 

@@ -6,3 +6,4 @@ __pycache__/
 *.mov
 # projects and outputs never go to git
 Vibe Projects/
+.pytest_cache/

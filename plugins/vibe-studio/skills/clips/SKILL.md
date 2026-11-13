@@ -55,3 +55,29 @@ no burned-in source text, clean first and last word.
 - **Music bed:** `--music-prompt "cinematic emotional piano, soft pads, 80 bpm, instrumental"` generates an ORIGINAL,
   royalty-free track (ACE-Step, ~20 s to make) and ducks it under the speaker. Or `--music file.mp3` (user-licensed).
   Match the mood: motivational = cinematic piano/strings; business = minimal deep house; story = warm lofi. Always "instrumental".
+
+## Layout, restoration and look (automatic)
+- `--layout auto|crop|fill`. Auto picks **crop** (face-tracked 9:16) when the face fits, and **fill** (the picture framed 4:3
+  around the face over a dark soft backdrop, headline above, captions below) for close-up webcam or wide shots
+  where a crop would be too tight.
+- Under 720p: Real-ESRGAN upscaling plus GFPGAN face restoration (`--upscale auto|on|off`, `--restore-faces 0..1`).
+- Captions are placed per frame: inside the platform safe area (top 8%, bottom 22%, sides 6–10% reserved) and never over the face.
+
+## Edit plans and automated QA (every render)
+- `<output>.plan.json`: every decision (segments, layout, grade numbers, restoration, captions, music) plus input fingerprints.
+  Edit it and re-render exactly (`glowup.py render-plan PLAN.json`), or keep it as a record.
+- `<output>.qa.json`: automated checks: render, dimensions, fps, duration, black or frozen frames, audio present
+  and loud enough (-16..-12 LUFS, true peak <= -0.5 dBTP), captions inside the safe area and off the face, the face not cut off,
+  and no clicks at cuts. **The command exits with code 2 if QA fails.** Read the failed check, fix it, and re-render.
+  Only use `--allow-qa-fail` when the user accepts the issue.
+
+## Find moments, batch many videos, brand presets (ideas from Chopify, MIT)
+- **Shortlist:** `run.sh clips.py moments "<project>" --min 20 --max 60 --top 8`. Every candidate gets a 0–10 score
+  from transcript cues (hook, payoff, self-contained, quotable, emotion, controversy, humour, minus filler and
+  intros/sign-offs), audio reactions (laughs, applause, energy building to a peak) and visual energy, with reasons.
+  **The score is a shortlist: read the top candidates and make the call yourself.** Never auto-pick an intro or outro.
+- **Batch:** `run.sh clips.py batch queue.txt --auto-render 3 --brand NAME` (one file or link per line). Each video
+  gets its own project; failures are recorded in `batch_report.json` and the batch continues.
+- **Brand presets:** `run.sh clips.py brand save NAME --base punch --highlight "#39FF88" --logo logo.png
+  --logo-position top-left`, then `--brand NAME` on render or batch. A `brand.json` in a project folder overrides
+  single fields for that project. Bad values are rejected with a clear message.
