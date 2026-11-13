@@ -53,7 +53,7 @@ def wrap(text, fnt, max_w):
 def render_text(text, *, font="Montserrat-ExtraBold.ttf", size=72, color="#FFFFFF", accent="#FFD400",
                 max_width=900, align="center", stroke=0, stroke_color="#000000", shadow=True,
                 line_gap=1.12, box=None, box_pad=(36, 22), box_radius=28, upper=False,
-                highlight_index=None, highlight_color=None, highlight_scale=1.0):
+                highlight_index=None, highlight_color=None, highlight_scale=1.0, visible_words=None):
     """Return an RGBA PIL image containing the styled text block.
 
     highlight_index: index of one word (counting all words) drawn in highlight_color (karaoke captions).
@@ -86,8 +86,9 @@ def render_text(text, *, font="Montserrat-ExtraBold.ttf", size=72, color="#FFFFF
             fill = accent if acc else color
             if highlight_index is not None and idx == highlight_index:
                 fill = highlight_color or accent
-            d.text((x, y), w, font=fnt, fill=hex_rgb(fill) if isinstance(fill, str) else fill,
-                   stroke_width=stroke, stroke_fill=hex_rgb(stroke_color))
+            if visible_words is None or idx < visible_words:   # kinetic reveal keeps the final layout
+                d.text((x, y), w, font=fnt, fill=hex_rgb(fill) if isinstance(fill, str) else fill,
+                       stroke_width=stroke, stroke_fill=hex_rgb(stroke_color))
             x += fnt.getlength(w) + space
             idx += 1
         y += lh
@@ -104,6 +105,8 @@ def render_text(text, *, font="Montserrat-ExtraBold.ttf", size=72, color="#FFFFF
         sh = sh.filter(ImageFilter.GaussianBlur(max(3, size // 14)))
         canvas = Image.alpha_composite(canvas, sh.transform(sh.size, Image.AFFINE, (1, 0, -3, 0, 1, -5)))
     canvas = Image.alpha_composite(canvas, txt)
+    if visible_words is not None:      # same canvas for every reveal step, so words don't jump around
+        return canvas
     bb = canvas.getbbox()
     return canvas.crop(bb) if bb else canvas
 

@@ -59,6 +59,64 @@ def product_mask(bgr, iters=6):
     return m, coverage
 
 
+_sam = None
+
+
+def _sam_load():
+    global _sam
+    if _sam is None:
+        import torch
+        from transformers import SamModel, SamProcessor
+        dev = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+        _sam = (SamProcessor.from_pretrained("facebook/sam-vit-base"),
+                SamModel.from_pretrained("facebook/sam-vit-base").to(dev).eval(), dev)
+    return _sam
+
+
+def sam_mask(bgr, box, points=None):
+    """Segment Anything (Apache-2.0): best object mask inside box=[x0,y0,x1,y1] (+ optional positive points)."""
+    import torch
+    from PIL import Image
+    proc, model, dev = _sam_load()
+    img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+    kw = {"input_boxes": [[list(map(float, box))]]}
+    if points:
+        kw["input_points"] = [[[list(map(float, p)) for p in points]]]
+    inp = proc(img, return_tensors="pt", **kw)
+    sizes = (inp["original_sizes"], inp["reshaped_input_sizes"])
+    inp = {k: (v.float() if v.is_floating_point() else v).to(dev) for k, v in inp.items()}
+    with torch.no_grad():
+        out = model(**inp, multimask_output=True)
+    masks = proc.image_processor.post_process_masks(out.pred_masks.cpu(), *sizes)[0][0].numpy().astype(np.float32)
+    scores = out.iou_scores.cpu()[0, 0].numpy()
+    bx = (box[2] - box[0]) * (box[3] - box[1]) / (bgr.shape[0] * bgr.shape[1])
+    best, best_s = None, -1
+    for m, s in zip(masks, scores):
+        cov = m.mean()
+        if 0.02 < cov < min(0.95, bx * 0.97) and s > best_s:   # an object, not the whole box
+            best, best_s = m, s
+    return best, float(best_s)
+
+
+def product_cutout(bgr):
+    """Best-quality product mask: GrabCut finds the product, SAM refines the edge. Returns (mask, coverage)."""
+    rough, cov = product_mask(bgr)
+    if not (0.03 < cov < 0.9):
+        return rough, cov
+    ys, xs = np.where(rough > 0.5)
+    h, w = bgr.shape[:2]
+    pad = 0.04 * max(w, h)
+    box = [max(0, xs.min() - pad), max(0, ys.min() - pad), min(w, xs.max() + pad), min(h, ys.max() + pad)]
+    try:
+        m, s = sam_mask(bgr, box, points=[((xs.min() + xs.max()) / 2, (ys.min() + ys.max()) / 2)])
+    except Exception:
+        m, s = None, 0
+    if m is None or s < 0.8:
+        return rough, cov
+    m = cv2.GaussianBlur(m, (0, 0), 1.2)
+    return m, float(m.mean())
+
+
 def to_rgba(bgr, mask):
     """BGR + mask -> RGBA PIL image cropped to the subject."""
     from PIL import Image

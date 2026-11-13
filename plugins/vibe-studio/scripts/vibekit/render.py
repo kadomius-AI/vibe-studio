@@ -13,7 +13,7 @@ SIZES = {"vertical": (1080, 1920), "square": (1080, 1080), "horizontal": (1920, 
 
 def render(src, out, *, fmt="vertical", words=None, caption_style="bold", caption_y=None,
            headline=None, headline_secs=3.0, zoom=1.0, eye_y=0.38, prefer_x=None, follow_face=True,
-           filters=(), music=None, music_db=-22, loudnorm=True, crf=18):
+           filters=(), music=None, music_db=-22, loudnorm=True, crf=18, punch=True, sfx=True):
     info = probe(src)
     W, H = SIZES[fmt]
     aspect = W / H
@@ -27,38 +27,25 @@ def render(src, out, *, fmt="vertical", words=None, caption_style="bold", captio
         head = render_text(headline.replace("|", "\n"), font="Montserrat-ExtraBold.ttf", size=int(64 * W / 1080),
                            max_width=int(W * 0.86), box="#0C0C0EC8", stroke=0)
     fps = tr["fps"]
+    n_frames = len(boxes)
+    # punch-in zooms: jump tighter at new sentences / emphasis (every few seconds), back out at the next one
+    zoom_mul = np.ones(n_frames, np.float32)
+    punch_times = []
+    if punch and words:
+        last, level = -9.0, 0
+        for k, w in enumerate(words):
+            prev_end = words[k - 1]["word"].strip()[-1:] if k else "."
+            if prev_end in ".!?" and w["start"] - last > 2.8 and w["start"] > 0.8:
+                level = 1 - level
+                punch_times.append((w["start"], level))
+                last = w["start"]
+        for t0, lv in punch_times:
+            zoom_mul[int(t0 * fps):] = 1.12 if lv else 1.0
+    import tempfile, os
+    tmp_vid = str(out) + ".video.mp4"
     cmd = [FFMPEG, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", f"{fps:.5f}",
-           "-i", "-"]
-    inputs = 1
-    if info["has_audio"]:
-        cmd += ["-i", str(src)]
-        inputs += 1
-    if music:
-        cmd += ["-stream_loop", "-1", "-i", str(music)]
-        inputs += 1
-    af = []
-    if info["has_audio"] and music:
-        af.append(f"[2:a]volume={music_db}dB,afade=t=in:d=0.6[m];[1:a][m]amix=inputs=2:duration=first:normalize=0[mix]")
-        alabel = "[mix]"
-    elif info["has_audio"]:
-        alabel = "1:a"
-    elif music:
-        alabel = f"{inputs - 1}:a"
-    else:
-        alabel = None
-    if alabel and loudnorm:
-        src_lbl = alabel if alabel.startswith("[") else f"[{alabel}]"
-        af.append(f"{src_lbl}loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000[aout]")
-        alabel = "[aout]"
-    if af:
-        cmd += ["-filter_complex", ";".join(af)]
-    cmd += ["-map", "0:v"]
-    if alabel:
-        cmd += ["-map", alabel if alabel.startswith("[") else alabel, "-c:a", "aac", "-b:a", "192k"]
-        if not info["has_audio"]:
-            cmd += ["-shortest"]
-    cmd += ["-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
-            "-profile:v", "high", "-movflags", "+faststart", str(out)]
+           "-i", "-", "-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
+           "-profile:v", "high", tmp_vid]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     cap = cv2.VideoCapture(str(src))
     i = 0
@@ -67,6 +54,13 @@ def render(src, out, *, fmt="vertical", words=None, caption_style="bold", captio
         if not ok:
             break
         x, y, cw, ch = boxes[min(i, len(boxes) - 1)]
+        z = zoom_mul[min(i, n_frames - 1)]
+        if z != 1.0:  # tighten around the face line, stay inside the frame
+            cx, cy = x + cw / 2, y + ch * eye_y
+            cw2, ch2 = cw / z, ch / z
+            x = min(max(cx - cw2 / 2, 0), info["width"] - cw2)
+            y = min(max(cy - ch2 * eye_y, 0), info["height"] - ch2)
+            cw, ch = cw2, ch2
         M = cv2.getAffineTransform(
             np.float32([[x, y], [x + cw, y], [x, y + ch]]),
             np.float32([[0, 0], [W, 0], [0, H]]))
@@ -87,4 +81,24 @@ def render(src, out, *, fmt="vertical", words=None, caption_style="bold", captio
     proc.stdin.close()
     if proc.wait() != 0:
         raise RuntimeError("ffmpeg failed while encoding " + str(out))
+    # ---- audio: original sound + ducked music + subtle sound effects ----
+    from . import sound
+    total = i / fps
+    bed = sound.load(src) if info["has_audio"] else None
+    mus = None
+    if music:
+        mus = sound.load(music)
+    events = [(t0 - 0.05, "swish_up", -24) for t0, _ in punch_times] if sfx else []
+    if head is not None and sfx:
+        events.append((0.0, "pop", -20))
+    if bed is None and mus is None and not events:
+        os.replace(tmp_vid, out)
+        return out
+    mixed = sound.mix(total, bed=bed, music=mus, sfx_events=events, music_db=music_db)
+    wav = str(out) + ".mix.wav"
+    sound.save_wav(wav, mixed)
+    af = ["-af", "loudnorm=I=-14:TP=-1.5:LRA=11"] if loudnorm else []
+    subprocess.run([FFMPEG, "-v", "error", "-y", "-i", tmp_vid, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+                    *af, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", str(out)], check=True)
+    os.remove(wav); os.remove(tmp_vid)
     return out

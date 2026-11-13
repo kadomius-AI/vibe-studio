@@ -40,8 +40,10 @@ def chunk(words, max_words=3, max_gap=0.45, max_chars=18):
 class CaptionTrack:
     """Pre-renders caption images and returns the right one for any time t."""
 
-    def __init__(self, words, frame_w, frame_h, style="bold", y=None):
+    def __init__(self, words, frame_w, frame_h, style="bold", y=None, highlight=None):
         st = dict(STYLES.get(style, STYLES["bold"]))
+        if highlight:
+            st["highlight"] = highlight
         self.st = st
         self.W, self.H = frame_w, frame_h
         self.y = y if y is not None else st["y"]

@@ -17,8 +17,14 @@ Run scripts through `../../scripts/run.sh` (auto-setup on first run). The user i
    If the cut-out is messy, keep the photo as a card (automatic) or ask for a photo on a plain background.
    `product_colors` suggests a matching accent color.
 3. **Scaffold 5 ads** (one per proven structure):
-   `run.sh ad.py scaffold --product product.jpg --name "…" --benefit "…" --problem "…" --features "A|B|C" --price "$29" --offer "…" --cta "Shop now" --accent "#hex" --bg "#hex" [--photos a.jpg,b.jpg] [--music track.mp3] --out "<folder>/ads"`
-4. **Rewrite the words** in each `ad_N.json` so they are specific, punchy and true (rules below). Keep each text short.
+   `run.sh ad.py scaffold --product product.jpg --name "…" --benefit "…" --problem "…" --features "A|B|C" --price "$29" --offer "…" --cta "Shop now" --accent "#hex" --bg "#hex" [--photos a.jpg,b.jpg] [--voice confident_male] [--music-prompt "…"] [--music track.mp3] [--no-voice] [--no-music] --out "<folder>/ads"`
+   Every ad gets: a **voiceover** (free, local Kokoro voice) with **captions synced word-by-word** in the brand color,
+   an **original music track** (ACE-Step, royalty-free, generated once and shared by all 5), cuts **snapped to the beat**,
+   **transitions** (zoom-blur, whip, flash) with matching **whoosh/hit sounds**, an impact on the hook, a riser into the
+   end card, and **word-by-word hook text**. Product cut-outs use Segment Anything for clean edges.
+   Voices: warm_female, bright_female, calm_female, deep_male, friendly_male, confident_male, british_female, british_male.
+4. **Rewrite the words** in each `ad_N.json` so they are specific, punchy and true (rules below): the on-screen hook/price/CTA
+   AND `voiceover.text` (spoken, 15–30 words, hook first, CTA last). Keep on-screen text to a few words; the synced captions carry the rest.
 5. **Render:** `run.sh ad.py render "<folder>/ads"` → `ad_1.mp4 … ad_5.mp4`. Look at each `ad_N_sheet.png`; fix
    overlapping text, unreadable words or a bad cut-out, then re-render.
 6. Deliver the 5 videos + `ad_copy.md` (primary text, headline, CTA per ad). Suggest testing all 5 and scaling the winner.
@@ -37,5 +43,5 @@ Run scripts through `../../scripts/run.sh` (auto-setup on first run). The user i
 - **One idea per screen,** few words, large type, high contrast; captions in the middle/lower-middle, clear of UI.
 - **Hook → body → CTA** within 9–20 s; the CTA sounds like a recommendation, not a shout.
 - **Make several hooks and test**; judge by 3-second view rate (hook) and hold rate, not by taste.
-- Use only true claims and real reviews. Music must be licensed for ads (user-supplied); otherwise leave silent so
-  the user can add a platform-licensed track.
+- Use only true claims and real reviews. Generated music is original and royalty-free; user-supplied music must be licensed for ads.
+- Music prompt = genre + instruments + bpm + mood + "instrumental" (e.g. "modern upbeat pop, punchy drums, bright plucks, 118 bpm, instrumental").

@@ -48,3 +48,10 @@ The user is not technical: run every command yourself and explain in plain words
 ## Quality bar
 1080×1920, 30 fps, H.264/AAC, loudness about −14 LUFS, face fully in frame, captions readable on a phone,
 no burned-in source text, clean first and last word.
+
+## Pro finishing (automatic)
+- **Punch-in zooms:** the frame jumps ~12% tighter at new sentences (every ~3 s) with a soft swish; `--no-punch` to disable.
+- **Sound effects** are original (synthesized), free to use anywhere; `--no-sfx` to disable.
+- **Music bed:** `--music-prompt "cinematic emotional piano, soft pads, 80 bpm, instrumental"` generates an ORIGINAL,
+  royalty-free track (ACE-Step, ~20 s to make) and ducks it under the speaker. Or `--music file.mp3` (user-licensed).
+  Match the mood: motivational = cinematic piano/strings; business = minimal deep house; story = warm lofi. Always "instrumental".

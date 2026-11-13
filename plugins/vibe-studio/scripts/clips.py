@@ -31,6 +31,9 @@ def main():
     r.add_argument("--prefer-x", type=float); r.add_argument("--no-captions", action="store_true")
     r.add_argument("--music"); r.add_argument("--words", help="corrected clip-relative words JSON to use for captions")
     r.add_argument("--caption-y", type=float)
+    r.add_argument("--no-punch", action="store_true", help="no punch-in zooms")
+    r.add_argument("--no-sfx", action="store_true", help="no sound effects")
+    r.add_argument("--music-prompt", help="generate an original music bed, e.g. 'lofi hip hop, mellow, 85 bpm, instrumental'")
     c = sub.add_parser("check"); c.add_argument("file")
     a = ap.parse_args()
 
@@ -62,9 +65,17 @@ def main():
         if a.words:
             rel = json.loads(Path(a.words).read_text())
         out = proj / "20_DELIVER" / f"{media.slug(a.name)}.mp4"
+        music = a.music
+        if a.music_prompt and not music:
+            import subprocess
+            music = str(work / "music.wav")
+            subprocess.run([str(Path.home() / ".local/share/vibekit/acestep-venv/bin/python"),
+                            str(Path(__file__).resolve().parent / "music_gen.py"), "--prompt", a.music_prompt,
+                            "--seconds", str(round(dur + 2)), "--out", music], check=True)
         R.render(work / "cut.mp4", out, fmt=a.format, words=None if a.no_captions else rel,
                  caption_style=a.style, caption_y=a.caption_y, headline=a.headline, headline_secs=a.headline_secs,
-                 zoom=a.zoom, eye_y=a.eye_y, prefer_x=a.prefer_x, music=a.music)
+                 zoom=a.zoom, eye_y=a.eye_y, prefer_x=a.prefer_x, music=music,
+                 punch=not a.no_punch, sfx=not a.no_sfx)
         print(json.dumps(qa.report(out), indent=1))
 
     elif a.cmd == "check":

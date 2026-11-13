@@ -16,9 +16,16 @@ done
 if [ -z "$PY" ]; then
   if command -v brew >/dev/null; then brew install python@3.12; PY=python3.12; else echo "Python 3.11–3.13 is required."; exit 1; fi
 fi
+command -v espeak-ng >/dev/null || { command -v brew >/dev/null && brew install espeak-ng; }   # voice pronunciation helper
 [ -x "$VENV/bin/python" ] || "$PY" -m venv "$VENV"
 "$VENV/bin/pip" install -q --upgrade pip
 "$VENV/bin/pip" install -q -r "$HERE/requirements.txt"
 if [ "$(uname -s)-$(uname -m)" = "Darwin-arm64" ]; then "$VENV/bin/pip" install -q mlx-whisper; else "$VENV/bin/pip" install -q faster-whisper; fi
+# Original music generator (ACE-Step, Apache-2.0) lives in its own environment (different library versions)
+ACE="${VIBEKIT_HOME:-$HOME/.local/share/vibekit}/acestep-venv"
+if [ ! -x "$ACE/bin/python" ]; then
+  echo "Installing the music generator (one time, a few minutes)…"
+  "$PY" -m venv "$ACE" && "$ACE/bin/pip" install -q --upgrade pip &&   "$ACE/bin/pip" install -q "git+https://github.com/ace-step/ACE-Step.git@1bee4c9f5b43" soundfile || echo "Music generator not installed; videos will use your own music files."
+fi
 touch "$VENV/.ok-$PLUGIN"
 echo "Vibe setup complete ($PLUGIN)."

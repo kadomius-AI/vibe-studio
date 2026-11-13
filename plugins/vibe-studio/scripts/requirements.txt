@@ -3,3 +3,10 @@ opencv-python-headless
 pillow
 mediapipe
 yt-dlp
+torch
+torchvision
+transformers
+librosa
+soundfile
+kokoro>=0.9
+demucs

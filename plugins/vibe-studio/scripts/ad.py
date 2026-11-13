@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cv2
 import numpy as np
 from vibekit.motion import render_spec
-from vibekit.segment import product_mask
+from vibekit.segment import product_cutout
 from vibekit import qa
 
 STRUCTURES = ["problem_solution", "bold_claim", "offer", "pov", "reasons"]
@@ -29,7 +29,7 @@ STRUCTURES = ["problem_solution", "bold_claim", "offer", "pov", "reasons"]
 def prep(img, out):
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     bgr = cv2.imread(str(img))
-    m, cov = product_mask(bgr)
+    m, cov = product_cutout(bgr)
     rgba = np.dstack([bgr, (m * 255).astype(np.uint8)])
     cv2.imwrite(str(out / "cutout.png"), rgba)
     prev = bgr.copy(); prev[m < 0.5] = (prev[m < 0.5] * 0.25).astype(np.uint8)
@@ -108,11 +108,33 @@ def scaffold(a):
                "texts": [_t(f"{i + 1}", "price", y=0.2), _t(f, "caption", 0.2, y=0.76)]} for i, f in enumerate(feats[:3])],
             end_card(2.4)],
     }
+    feats3 = (feats + feats + feats)[:3]
+    vo_scripts = {
+        "problem_solution": f"Tired of {prob}? Meet {name}. {ben}. {feats3[0]}, {feats3[1]}, and {feats3[2]}. {price_line}. {cta}.",
+        "bold_claim": f"{ben}. That's what {name} does. {feats3[0]}. {cta}.",
+        "offer": f"Stop scrolling. This is {name}. {ben}. {price_line}. {cta}.",
+        "pov": f"P O V: you finally found {ben}. It's {name}. {feats3[0]} and {feats3[1]}. {cta}.",
+        "reasons": f"Three reasons you need {name}. One: {feats3[0]}. Two: {feats3[1]}. Three: {feats3[2]}. {cta}.",
+    }
+    music_prompt = a.music_prompt or "modern upbeat pop, punchy drums, bright synth plucks, confident, 118 bpm, instrumental"
     made = []
     for i, key in enumerate(STRUCTURES, 1):
-        spec = {"structure": key, "size": [1080, 1920], "fps": 30, "brand": brand, "scenes": specs[key]}
+        scenes = specs[key]
+        if not a.no_voice:
+            # the voice carries the words: keep big on-screen hooks/prices/CTAs, let synced captions do the rest
+            for sc in scenes:
+                sc["texts"] = [t for t in sc.get("texts", []) if t.get("style") != "caption"]
+                for t in sc["texts"]:
+                    if t.get("style") == "hook":
+                        t["anim"] = "words"
+        spec = {"structure": key, "size": [1080, 1920], "fps": 30, "brand": brand, "scenes": scenes,
+                "transition": "auto", "sfx": True, "caption_style": "punch", "caption_y": 0.74}
+        if not a.no_voice:
+            spec["voiceover"] = {"text": vo_scripts[key], "voice": a.voice, "speed": 1.05}
         if a.music:
             shutil.copy2(a.music, out / ("music" + Path(a.music).suffix)); spec["music"] = "music" + Path(a.music).suffix
+        elif not a.no_music:
+            spec["music"] = {"prompt": music_prompt, "seed": 11, "seconds": 30}
         (out / f"ad_{i}.json").write_text(json.dumps(spec, indent=1))
         made.append(str(out / f"ad_{i}.json"))
     copy = [f"# Ad copy — {name}\n"]
@@ -135,6 +157,8 @@ def main():
     for k in ("--problem", "--features", "--price", "--offer", "--cta", "--photos", "--music"):
         s.add_argument(k)
     s.add_argument("--accent", default="#FFD400"); s.add_argument("--bg", default="#111111")
+    s.add_argument("--voice", default="confident_male"); s.add_argument("--music-prompt")
+    s.add_argument("--no-voice", action="store_true"); s.add_argument("--no-music", action="store_true")
     r = sub.add_parser("render"); r.add_argument("target")
     a = ap.parse_args()
     if a.cmd == "prep":

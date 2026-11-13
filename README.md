@@ -22,7 +22,22 @@ Needs: macOS or Linux, Homebrew (`ffmpeg` is installed automatically), Python 3.
 ## Where things go
 `~/Documents/Vibe Projects/<project>/` → `00_SOURCE` (your footage, never deleted), `10_WORK`, `20_DELIVER` (finished files).
 
-## Credits
-Fonts: Montserrat, Anton, Playfair Display, Inter (SIL Open Font License 1.1, https://openfontlicense.org).
-Models downloaded on first use: OpenCV YuNet face detector (MIT), MediaPipe selfie segmenter (Apache-2.0),
-Whisper speech recognition (MIT).
+## Built with (all free and open source, runs on your Mac)
+| Job | Framework / model | License |
+|---|---|---|
+| Video in/out, cutting, loudness | FFmpeg, OpenCV | LGPL/GPL tool, Apache-2.0 |
+| Face tracking | OpenCV YuNet | MIT |
+| Transcription + word timing | Whisper (mlx-whisper on Apple Silicon) | MIT |
+| Voiceover with word timing | Kokoro-82M | Apache-2.0 |
+| Original music | ACE-Step | Apache-2.0 |
+| Beat detection | librosa | ISC |
+| Sound effects | synthesized in code (original) | — |
+| Voice isolation | Demucs (htdemucs) | MIT |
+| 3D parallax on photos | Depth Anything V2 Small (PyTorch + transformers) | Apache-2.0 |
+| Product cut-outs | Segment Anything (SAM ViT-B) | Apache-2.0 |
+| Person cut-outs / backgrounds | MediaPipe selfie segmenter | Apache-2.0 |
+| Graphics and text | Pillow + NumPy | MIT-CMU / BSD |
+| AI runtime | PyTorch (Apple GPU), MLX | BSD / MIT |
+No API keys, no accounts, no payments. First use downloads about 10–15 GB of models once.
+
+Fonts: Montserrat, Anton, Playfair Display, Inter — SIL Open Font License 1.1.
