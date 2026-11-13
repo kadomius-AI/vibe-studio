@@ -29,7 +29,7 @@ TEXT_STYLES = {
     "cta":     dict(font="Anton.ttf", size=104, upper=True, y=0.78, cta=True),
     "badge":   dict(font="Montserrat-ExtraBold.ttf", size=58, upper=True, y=0.10, badge=True),
     "title":   dict(font="PlayfairDisplay.ttf", size=104, y=0.44, shadow_only=True),
-    "small":   dict(font="Montserrat-SemiBold.ttf", size=44, upper=True, y=0.55, shadow_only=True),
+    "small":   dict(font="Montserrat-SemiBold.ttf", size=54, upper=True, y=0.55, shadow_only=True),
 }
 
 
@@ -87,7 +87,7 @@ def _contain_frames(img, W, H, n, motion):
         e = p * p * (3 - 2 * p)
         z = 1.0 + (0.06 * e if motion != "zoom_out" else 0.06 * (1 - e))
         punch = 1 + 0.04 * max(0.0, 1 - k / 6)
-        s = W / iw * 1.04 * z * punch
+        s = W / iw * 1.3 * z * punch
         ox = (W - iw * s) / 2 + (({"pan_left": 0.5 - e, "pan_right": e - 0.5}.get(motion, 0)) * iw * s * 0.08)
         oy = (H - ih * s) / 2
         M = np.float32([[s, 0, ox], [0, s, oy]])
